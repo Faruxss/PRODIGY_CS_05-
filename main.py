@@ -12,7 +12,7 @@ def packet_callback(packet):
         timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Add timestamp
 
         if TCP in packet:
-            sport = packet[TTCP].sport
+            sport = packet[TCP].sport
             dport = packet[TCP].dport
             log_packet(f"[{timestamp}] TCP Packet: Source IP {ip_src}:{sport}, Destination IP {ip_dst}:{dport}")
 

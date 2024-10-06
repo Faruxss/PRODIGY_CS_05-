@@ -1,44 +1,57 @@
+import argparse
 from scapy.all import sniff
 from scapy.layers.inet import IP, TCP, UDP
+from datetime import datetime
 
-
+# Function to handle each packet
 def packet_callback(packet):
-    """
-    Callback function to process captured packets.
-    It checks if the packet contains an IP layer, then determines
-    whether it is a TCP, UDP, or another type of packet.
-    """
     if IP in packet:
-        ip_src = packet[IP].src  # Source IP address
-        ip_dst = packet[IP].dst  # Destination IP address
-        proto = packet[IP].proto  # Protocol number
+        ip_src = packet[IP].src
+        ip_dst = packet[IP].dst
+        proto = packet[IP].proto
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # Add timestamp
 
-        # Handling TCP packets
         if TCP in packet:
-            sport = packet[TCP].sport  # Source port
-            dport = packet[TCP].dport  # Destination port
-            print(f"TCP Packet: Source IP {ip_src}:{sport}, Destination IP {ip_dst}:{dport}")
+            sport = packet[TTCP].sport
+            dport = packet[TCP].dport
+            log_packet(f"[{timestamp}] TCP Packet: Source IP {ip_src}:{sport}, Destination IP {ip_dst}:{dport}")
 
-        # Handling UDP packets
         elif UDP in packet:
-            sport = packet[UDP].sport  # Source port
-            dport = packet[UDP].dport  # Destination port
-            print(f"UDP Packet: Source IP {ip_src}:{sport}, Destination IP {ip_dst}:{dport}")
+            sport = packet[UDP].sport
+            dport = packet[UDP].dport
+            log_packet(f"[{timestamp}] UDP Packet: Source IP {ip_src}:{sport}, Destination IP {ip_dst}:{dport}")
 
-        # Handling other packet types
         else:
-            print(f"Other Packet: Source IP {ip_src}, Destination IP {ip_dst}, Protocol: {proto}")
+            log_packet(f"[{timestamp}] Other Packet: Source IP {ip_src}, Destination IP {ip_dst}, Protocol: {proto}")
 
+# Function to log packet details to a file or print to console
+def log_packet(packet_info):
+    if args.output:
+        with open(args.output, "a") as log_file:
+            log_file.write(packet_info + "\n")
+    else:
+        print(packet_info)
 
-def start_packet_capture(packet_count=10):
-    """
-    Function to start packet capture. It captures the specified number of packets
-    and processes them using the callback function.
-    """
-    print(f"Starting packet capture for {packet_count} packets...")
-    sniff(prn=packet_callback, count=packet_count)
+# Argument parser setup
+parser = argparse.ArgumentParser(description="A simple packet sniffer.")
+parser.add_argument("--protocol", choices=["tcp", "udp", "all"], default="all",
+                    help="Filter packets by protocol (tcp, udp, or all). Default is all.")
+parser.add_argument("--count", type=int, default=10, 
+                    help="Number of packets to capture. Default is 10.")
+parser.add_argument("--output", help="Log output to a file instead of printing to the console.")
 
+args = parser.parse_args()
 
-# Start capturing 10 packets
-if __name__ == "__main__":
-    start_packet_capture(packet_count=10)
+# Filter logic based on protocol argument
+if args.protocol == "tcp":
+    protocol_filter = lambda pkt: TCP in pkt
+elif args.protocol == "udp":
+    protocol_filter = lambda pkt: UDP in pkt
+else:
+    protocol_filter = None  # Capture all protocols if no filter is set
+
+print(f"Starting packet capture... Capturing {args.count} packets.")
+if args.protocol != "all":
+    print(f"Filtering by protocol: {args.protocol.upper()}")
+
+sniff(prn=packet_callback, count=args.count, lfilter=protocol_filter)
